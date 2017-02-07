@@ -1,0 +1,66 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+import pandas
+from bs4 import BeautifulSoup
+import os
+import time
+
+# Get text of news from XML
+# col_names = ['NewsId', 'SourceId', 'NewsTitle', 'NewsBody', 'NewsDate', 'NewsCategory', 'NewsViewed']
+# data = pandas.read_csv('datasets/SelectedSentence.csv', names=col_names)
+# id_list = data.NewsId.tolist()
+# text_list = data.NewsBody.tolist()
+
+# Read from seperated parsidb Format in a directory
+path = '/home/mahmood/Desktop/Master/Thesis/Dataset/Pasokh - Ijaz/Single -Dataset/Source/DUC'
+title_path = '/home/mahmood/Desktop/Master/Thesis/Dataset/Pasokh - Ijaz/Single -Dataset/Source/Title'
+id_list = list()
+text_list = list()
+title_list = list()
+for filename in os.listdir(path):
+	id_list.append(filename[:-4])
+	with open(path+'/'+filename) as f:
+		text_list.append(f.read().replace('\n', ''))
+	with open(title_path+'/'+filename) as g:
+		title_list.append(g.read().replace('\n', ''))
+
+for index, text in enumerate(text_list):
+
+	if id_list[index] != 'HAM.CU.13910107.090':
+		continue
+
+	driver = webdriver.Firefox()
+
+	driver.get("http://parsidb.ir/doSum/index")
+
+	elem_form = driver.find_element_by_id("form0")
+
+	elem_title = driver.find_element_by_name("title")
+
+	elem_title.send_keys(title_list[index].decode('utf8'))
+
+	elem_textarea = driver.find_element_by_name("body")
+
+	elem_textarea.send_keys(text_list[index].decode('utf8'))
+
+	elem_submit = driver.find_element_by_xpath('//*[@id="form0"]/div/button')
+
+	elem_submit.click()
+
+	res_page = BeautifulSoup(driver.page_source)
+	wait = res_page.find("div", id="modal")
+	while wait['style'] == 'display: block;':
+		res_page = BeautifulSoup(driver.page_source)
+		wait = res_page.find("div", id="modal")
+		print wait['style']
+		time.sleep(2)
+
+	res_page = BeautifulSoup(driver.page_source)
+	a = res_page.find("p", id="result")
+
+	print a.text.encode('utf8')
+
+	with open('results/parsidb/pasokh/summ/' + id_list[index] + '.sum', 'w') as f:
+		f.write(a.text.encode('utf8'))
+
+	driver.close()

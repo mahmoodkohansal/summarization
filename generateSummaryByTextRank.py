@@ -1,0 +1,82 @@
+import numpy
+from sklearn.cluster import SpectralClustering
+from os import listdir
+from os.path import isfile, join
+from hazm import *
+from collections import Counter
+import logging
+import os
+import sys
+from gensim.models import Doc2Vec, Word2Vec
+import operator
+import networkx as nx
+from scipy import sparse
+
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
+# Set sum or mean for sentence embedding from w2v vectors
+opr = 'tfidf_mean'
+stop = 'withStop'
+dataset = 'pasokh'
+
+if dataset == 'bistoon':
+	orig_news_directory = '/home/mahmood/Desktop/Master/Thesis/Dataset/Biston/doted/'
+	orig_title_directory = '/home/mahmood/Desktop/Master/Thesis/Dataset/Biston/title/'
+elif dataset == 'pasokh':
+	orig_news_directory = '/home/mahmood/Desktop/Master/Thesis/Dataset/Pasokh - Ijaz/Single -Dataset/Source/DUC/'
+	orig_title_directory = '/home/mahmood/Desktop/Master/Thesis/Dataset/Pasokh - Ijaz/Single -Dataset/Source/Title/'
+else:
+	print('ERROR IN DATASET!')
+	sys.exit()
+
+orig_news_path = orig_news_directory
+news_files = [f for f in listdir(orig_news_path) if isfile(join(orig_news_path, f))]
+
+orig_title_path = orig_title_directory
+
+model = Word2Vec.load('models/w2v_300_combinedNormalized.bin')
+
+for file in news_files: #200 News
+	id = file[:-4]
+
+	# if id != 'FAR.CU.13910203.004':
+	# 	continue
+
+	print(id)
+	matrix = numpy.load('results/w2v_' + dataset + '_' + opr + '_' + stop + '/matrix/'+id+'.res')
+	# print(id, matrix.min())
+	# print matrix
+
+	# Force matrix to be symmetric
+	matrix = (matrix + matrix.transpose())/2
+	# print (matrix.transpose() == matrix).all()
+
+	# Load Sentences file
+	with open('results/w2v_' + dataset + '_' + opr + '_' + stop + '/sentences/'+id+'.txt') as f:
+		sentences = f.read().splitlines()
+
+	similarity_graph = sparse.csr_matrix(matrix)
+	nx_graph = nx.from_scipy_sparse_matrix(similarity_graph)
+	try:
+		scores = nx.pagerank(nx_graph, max_iter=1500)
+	except:
+		continue
+	# print(scores)
+	# print(len(scores), len(sentences))
+	ranked = sorted(((scores[i], s) for i, s in enumerate(sentences)),reverse=True)
+
+	summary = ''
+	sent_count = 0
+	while(len(summary.split()) < 250 and sent_count < len(sentences)-1): #len(summary) < 250
+		summary = summary + ranked[sent_count][1] + '\n'
+		sent_count += 1
+
+	filename = 'results/w2v_' + dataset + '_' + opr + '_' + stop + '/eval/files_textrank/system/'+id+'.sum'
+	if not os.path.exists(os.path.dirname(filename)):
+		try:
+			os.makedirs(os.path.dirname(filename))
+		except OSError as exc:  # Guard against race condition
+			if exc.errno != errno.EEXIST:
+				raise
+	with open(filename, 'w') as g:
+		g.write(summary)
