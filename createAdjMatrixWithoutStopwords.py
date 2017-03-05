@@ -30,26 +30,49 @@ def sent2vec(model, sent, typ):
 	sentence = normalizer.normalize(sent)
 	sent_words = word_tokenize(sentence)
 	sent_words_vectors = list()
-	for word in sent_words:
-		word = word.replace('\ufeff', '')
-		try:
-			sent_words_vectors.append(model[word] * tf_idf[word])
-		except:
-			pass
 
-	if typ == 'sum':
-		sent_vector = numpy.sum(sent_words_vectors, axis=0)
-	else:
+	if typ == 'mean':
+		for word in sent_words:
+			word = word.replace('\ufeff', '')
+			try:
+				sent_words_vectors.append(model[word])
+			except:
+				pass
 		sent_vector = numpy.mean(sent_words_vectors, axis=0)
+
+	elif typ == 'tfidf_mean':
+		for word in sent_words:
+			word = word.replace('\ufeff', '')
+			try:
+				sent_words_vectors.append(model[word] * tf_idf[word])
+			except:
+				pass
+		sent_vector = numpy.mean(sent_words_vectors, axis=0)
+
+	elif typ == 'tfidf_mean_STEM':
+		for word in sent_words:
+			word = word.replace('\ufeff', '')
+			if word not in string.punctuation:
+				try:
+					sent_words_vectors.append(model[word] * tf_idf[word])
+				except:
+					pass
+		sent_vector = numpy.mean(sent_words_vectors, axis=0)
+
 	return sent_vector
 
 # Set sum or mean for sentence embedding from w2v vectors
-opr = 'tfidf_mean'
-stop = 'withoutStop'
+opr = 'tfidf_mean_STEM'
+stop = 'withStop'
 dataset = 'pasokh'
+trainedData = 'w2v_300_stemmed'
 
-f = open('obj/words_tfidf.pkl', 'rb')
-tf_idf = pickle.load(f)
+if opr == 'tfidf_mean':
+	f = open('obj/words_tfidf.pkl', 'rb')
+	tf_idf = pickle.load(f)
+elif opr == 'tfidf_mean_STEM':
+	f = open('obj/cleaned_stemmed/words_tfidf.pkl', 'rb')
+	tf_idf = pickle.load(f)
 
 if dataset == 'bistoon':
 	orig_news_directory = '/home/mahmood/Desktop/Master/Thesis/Dataset/Biston/doted/'
@@ -71,7 +94,14 @@ for filename in os.listdir(path):
 	with open(path+'/'+filename) as f:
 		text_list.append(f.read().replace('\n', ''))
 
-model = Word2Vec.load('models/w2v_300_combinedNormalized.bin')
+if trainedData == 'w2v_300_normalized':
+	model = Word2Vec.load('models/w2v_300_combinedNormalized.bin')
+elif trainedData == 'w2v_100_cleaned':
+	model = Word2Vec.load('models/w2v_100_combinedNormalized_cleaned.bin')
+elif trainedData == 'w2v_300_cleaned':
+	model = Word2Vec.load('models/w2v_300_combinedNormalized_cleaned.bin')
+elif trainedData == 'w2v_300_stemmed':
+	model = Word2Vec.load('models/w2v_300_combinedNormalized_cleaned_stemmed.bin')
 
 normalizer = Normalizer()
 
@@ -89,11 +119,19 @@ for index, t_list in enumerate(text_list):
 	sentences = sent_tokenize(normalized_text)
 	reduced_sentences = []
 
-	# Remove Stopwords and Punctuations
-	for sentence in sentences:
-		reduced_sentences.append(' '.join(word for word in word_tokenize(sentence) if word not in stopList and word not in string.punctuation))
+	if stop == 'withStop':
+		# Remove Punctuations
+		for sentence in sentences:
+			reduced_sentences.append(' '.join(
+				word for word in word_tokenize(sentence) if word not in string.punctuation))
 
-	filename = 'results/test__w2v_' + dataset + '_' + opr + '_' + stop + '/sentences/' + id_list[index] + '.txt'
+	elif stop == 'withoutStop':
+		# Remove Stopwords and Punctuations
+		for sentence in sentences:
+			reduced_sentences.append(' '.join(
+				word for word in word_tokenize(sentence) if word not in stopList and word not in string.punctuation))
+
+	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/sentences/' + id_list[index] + '.txt'
 	os.makedirs(os.path.dirname(filename), exist_ok=True)
 
 	with open(filename, 'w') as f:
@@ -111,13 +149,13 @@ for index, t_list in enumerate(text_list):
 	# print(len(sentences))
 
 	# Save Titles Vector
-	filename = 'results/test__w2v_' + dataset + '_' + opr + '_' + stop + '/title_cosine/' + id_list[index] + '.res'
+	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/title_cosine/' + id_list[index] + '.res'
 	os.makedirs(os.path.dirname(filename), exist_ok=True)
 
 	with open(filename, 'w') as f:
 		for sentence in reduced_sentences:
 			sent_vec = sent2vec(model, sentence, opr)
-			print(sent_vec.size)
+			# print(sent_vec.size)
 			if(sent_vec.size != 1): # sentence is not short
 				try:
 					cosine_val = cosine_sim(title_vector, sent_vec)
@@ -141,9 +179,9 @@ for index, t_list in enumerate(text_list):
 			except:
 				adj_matrix[i, j] = numpy.float32(0)
 
-	print(adj_matrix)
+	# print(adj_matrix)
 
 	# Save Adjacency Matrix in results directory
-	filename = 'results/test__w2v_' + dataset + '_' + opr + '_' + stop + '/matrix/' + id_list[index] + '.res'
+	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/matrix/' + id_list[index] + '.res'
 	os.makedirs(os.path.dirname(filename), exist_ok=True)
 	numpy.save(filename, adj_matrix)

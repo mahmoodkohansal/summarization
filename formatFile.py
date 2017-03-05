@@ -62,15 +62,30 @@ def load_obj(name ):
 # 	i = i + 1
 # save_obj(names_dict, 'bistoon_names_dictionary')
 
-
 name_ids = load_obj('pasokh_names_dictionary')
-dir = '/home/mahmood/PycharmProjects/Word2Vec/results/test__w2v_pasokh_tfidf_mean_withoutStop/eval/clustering_files/'
+dir = '/home/mahmood/PycharmProjects/Word2Vec/results/w2v_pasokh_mean_withoutStop/eval/files_textrank/'
 
 for sys_filename in os.listdir(dir+'system/'):
 	os.renames(dir+'system/'+sys_filename, dir+'system/task'+str(name_ids[sys_filename[:-4]])+'_'+sys_filename)
 
 # for ref_filename in os.listdir(dir+'reference/'):
 # 	os.renames(dir+'reference/'+ref_filename, dir+'reference/task'+str(name_ids[ref_filename[:10]+'title'])+'_'+ref_filename)
+
+
+
+# from hazm import *
+# normalizer = Normalizer()
+#
+# name_ids = load_obj('pasokh_names_dictionary')
+# dir = '/home/mahmood/Desktop/Master/Thesis/Dataset/Pasokh - Ijaz/Single -Dataset/Source/DUC/'
+#
+# with open('pasokh_detail.csv', 'w') as w:
+# 	for x in name_ids:
+# 		w.write(x + ', TASK' + str(name_ids[x]) + ',')
+# 		w.write(str(os.path.getsize(dir + x + '.txt')) + ',')
+# 		with open(dir + x + '.txt') as f:
+# 			w.write(str(len(sent_tokenize(normalizer.normalize(f.read())))) + '\n')
+
 
 
 # # Add Dot end of all lines

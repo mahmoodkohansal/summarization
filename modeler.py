@@ -12,12 +12,12 @@ class MySentences(object):
 		for fname in os.listdir(self.dirname):
 			for line in open(os.path.join(self.dirname, fname)):
 				line = normalizer.normalize(line)
-				yield line.split()
+				yield word_tokenize(line)
 
 sentences = MySentences('/home/mahmood/PycharmProjects/Word2Vec/sentences')  # a memory-friendly iterator
 # print sentences
 
-model = gensim.models.Word2Vec(sentences, size=300, window=5, workers=4)
+model = gensim.models.Word2Vec(sentences, size=300, window=5, workers=8)
 
-model.save('models/w2v_300_combinedNormalized.bin')
+model.save('models/w2v_300_combinedNormalized_cleaned.bin')
 
