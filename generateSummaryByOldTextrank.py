@@ -11,12 +11,11 @@ from gensim.models import Doc2Vec, Word2Vec
 import operator
 import networkx as nx
 from scipy import sparse
-import time
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 # Set sum or mean for sentence embedding from w2v vectors
-opr = 'tfidf_mean_STEM'
+opr = 'munkres'
 stop = 'withoutStop'
 dataset = 'pasokh'
 trainedData = 'w2v_300_cleaned'
@@ -40,14 +39,18 @@ if trainedData == 'w2v_300_normalized':
 	model = Word2Vec.load('models/w2v_300_combinedNormalized.bin')
 elif trainedData == 'w2v_100_cleaned':
 	model = Word2Vec.load('models/w2v_100_combinedNormalized_cleaned.bin')
+elif trainedData == 'w2v_300_cleaned':
+	model = Word2Vec.load('models/w2v_300_combinedNormalized_cleaned.bin')
 elif trainedData == 'w2v_300_stemmed':
 	model = Word2Vec.load('models/w2v_300_combinedNormalized_cleaned_stemmed.bin')
 
 for file in news_files: #200 News
 	id = file[:-4]
 
-	# if id != 'FAR.SP.13910202.013':
-	# 	continue
+	if id == 'FAR.EC.13910127.012':
+		continue
+	if id == 'HAM.CU.13910107.090':
+		continue
 
 	print(id)
 	matrix = numpy.load('results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/matrix/'+id+'.res.npy')
@@ -79,28 +82,15 @@ for file in news_files: #200 News
 		continue
 	# print(scores)
 	# print(len(scores), len(sentences))
-	ranked = sorted(((scores[i], s, i) for i, s in enumerate(sentences)),reverse=True)
-
-	selected_sentences = []
+	ranked = sorted(((scores[i], s) for i, s in enumerate(sentences)),reverse=True)
 
 	summary = ''
 	sent_count = 0
 	while(len(summary.split()) < 250 and sent_count < len(sentences)-1): #len(summary) < 250
-		goodSentence = True
-		for x in selected_sentences:
-			# print(matrix[x][ranked[sent_count][2]])
-			if matrix[x][ranked[sent_count][2]] > 0.9:
-				# print('#####################')
-				# time.sleep(3)
-				goodSentence = False
-				break
-		if goodSentence:
-			selected_sentences.append(ranked[sent_count][2])
-			summary = summary + ranked[sent_count][1] + '\n'
-			last_sentence_id = ranked[sent_count][2]
+		summary = summary + ranked[sent_count][1] + '\n'
 		sent_count += 1
 
-	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/eval/files/textrank_modified_85/system/'+id+'.sum'
+	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/eval/files/textrank_old/system/'+id+'.sum'
 	if not os.path.exists(os.path.dirname(filename)):
 		try:
 			os.makedirs(os.path.dirname(filename))

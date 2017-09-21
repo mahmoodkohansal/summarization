@@ -9,11 +9,12 @@ import os
 import sys
 from gensim.models import Doc2Vec, Word2Vec
 import operator
+from sklearn.cluster import KMeans
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 # Set sum or mean for sentence embedding from w2v vectors
-opr = 'munkres_jaccard2'
+opr = 'tfidf_mean'
 stop = 'withoutStop'
 dataset = 'pasokh'
 trainedData = 'w2v_300_cleaned'
@@ -45,13 +46,20 @@ elif trainedData == 'w2v_300_stemmed':
 for file in news_files: #200 News
 	id = file[:-4]
 
-	if id == 'FAR.EC.13910127.012':
-		continue
-	if id == 'HAM.CU.13910107.090':
-		continue
+	# if id == 'FAR.EC.13910127.012':
+	# 	continue
+	# if id == 'HAM.CU.13910107.090':
+	# 	continue
 
-	print(id)
-	matrix = numpy.load('results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/matrix/' + id + '.res.npy')
+	# print(id)
+	matrix = numpy.load('results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/vectors/' + id + '.res.npy')
+
+	# print(type(matrix))
+	# print(matrix)
+	if id == "JAM.SC.13910204.002":
+		print(matrix.shape)
+	else:
+		print(matrix.shape)
 
 	if opr == 'wmd':
 		# Remove INF values in Matrix
@@ -62,27 +70,24 @@ for file in news_files: #200 News
 		beta = 0.1
 		matrix = numpy.exp(-beta * matrix / matrix.std())
 
-	# Force matrix to be symmetric
-	matrix = (matrix + matrix.transpose())/2
-
 	# Normal cosine similarity value between 0 and 1
 	# matrix = matrix / 2 + 0.5
-	print(matrix)
-	print('-----------------------------------------------------------')
+	# print(matrix)
+	# print('-----------------------------------------------------------')
 
 	num_cluster = 4
 	if matrix.shape[0] < num_cluster + 1:
 		num_cluster = matrix.shape[0] - 1
 
-	cl = SpectralClustering(n_clusters=num_cluster,affinity='precomputed')
+	cl = KMeans(n_clusters=num_cluster, random_state=0)
 
-	print(num_cluster)
+	# print(num_cluster)
 	try:
 		sentence_clusters = cl.fit_predict(matrix)
 	except:
-		matrix = matrix / 2 + 0.5
-		sentence_clusters = cl.fit_predict(matrix)
-	print(sentence_clusters)
+		print(id)
+		continue
+	# print(sentence_clusters)
 
 	# Load Title file
 	with open('results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/title_cosine/' + id + '.res') as f:
@@ -91,13 +96,13 @@ for file in news_files: #200 News
 	intermediate = numpy.empty((num_cluster, 0)).tolist()
 	for index, sentence_id in enumerate(sentence_clusters):
 		intermediate[sentence_id].append((index, title_similarity[index]))
-	print(intermediate)
+	# print(intermediate)
 
 	title_intermediate = list()
 	for small_list in intermediate:
 		small_sorted = sorted(small_list, key=lambda sent: sent[1], reverse=True)
 		title_intermediate.append(small_sorted)
-	print(title_intermediate)
+	# print(title_intermediate)
 
 	# Select all sentences from One cluster
 	# cluster_mean = list()
@@ -122,7 +127,7 @@ for file in news_files: #200 News
 	ctr = Counter(sentence_clusters.ravel())
 	cluster_priority.append(ctr.most_common(num_cluster))
 	cluster_priority = [x[0] for x in cluster_priority[0]]
-	print(cluster_priority)
+	# print(cluster_priority)
 
 	# Load Sentences file
 	with open('results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/sentences/'+id+'.txt') as f:
@@ -144,12 +149,7 @@ for file in news_files: #200 News
 		else:
 			sent_count += 1
 
-	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/eval/files/clustering4title/system/' + id + '.sum'
-	if not os.path.exists(os.path.dirname(filename)):
-		try:
-			os.makedirs(os.path.dirname(filename))
-		except OSError as exc:  # Guard against race condition
-			if exc.errno != errno.EEXIST:
-				raise
+	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/eval/files/kmeans/system/' + id + '.sum'
+	os.makedirs(os.path.dirname(filename), exist_ok=True)
 	with open(filename, 'w') as g:
 		g.write(summary)

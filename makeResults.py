@@ -60,7 +60,10 @@ def func2(file):
 
 	print(avg_recall, avg_precision, avg_f)
 	with open(file, 'a') as f:
-		f.write(',,,' + str(avg_recall) + ',' + str(avg_precision) + ',' + str(avg_f) + '\n')
+		f.write(',,,,' + str(avg_recall) + ',' + str(avg_precision) + ',' + str(avg_f) + '\n')
 
-# func1('/home/mahmood/PycharmProjects/Word2Vec/results/w2v_300_stemmed/w2v_pasokh_tfidf_mean_STEM_withStop/eval/')
-func2('/home/mahmood/PycharmProjects/Word2Vec/results/w2v_300_stemmed/w2v_pasokh_tfidf_mean_STEM_withStop/eval/results/r1-textrank.csv')
+# func1('/home/mahmood/PycharmProjects/Word2Vec/results/w2v_300_cleaned/w2v_pasokh_tfidf_mean_withoutStop/eval/')
+func2('/home/mahmood/PycharmProjects/Word2Vec/results/w2v_300_cleaned/w2v_pasokh_tfidf_mean_withoutStop/eval/results/r1-birch.csv')
+func2('/home/mahmood/PycharmProjects/Word2Vec/results/w2v_300_cleaned/w2v_pasokh_tfidf_mean_withoutStop/eval/results/r2-birch.csv')
+func2('/home/mahmood/PycharmProjects/Word2Vec/results/w2v_300_cleaned/w2v_pasokh_tfidf_mean_withoutStop/eval/results/r3-birch.csv')
+func2('/home/mahmood/PycharmProjects/Word2Vec/results/w2v_300_cleaned/w2v_pasokh_tfidf_mean_withoutStop/eval/results/r4-birch.csv')

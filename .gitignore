@@ -1,0 +1,8 @@
+datasets/
+models/
+model_combined/
+obj/
+results/
+sentences/
+combined_sentences_normalized.txt
+aaa.txt

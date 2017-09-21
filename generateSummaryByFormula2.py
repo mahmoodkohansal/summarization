@@ -1,5 +1,4 @@
 import numpy
-from sklearn.cluster import SpectralClustering
 from os import listdir
 from os.path import isfile, join
 from hazm import *
@@ -19,7 +18,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 opr = 'tfidf_mean_STEM'
 stop = 'withoutStop'
 dataset = 'pasokh'
-trainedData = 'w2v_300_cleaned'
+trainedData = 'w2v_300_stemmed'
 
 if dataset == 'bistoon':
 	orig_news_directory = '/home/mahmood/Desktop/Master/Thesis/Dataset/Biston/doted/'
@@ -77,30 +76,65 @@ for file in news_files: #200 News
 		scores = nx.pagerank(nx_graph, max_iter=1500)
 	except:
 		continue
+
+	sentencesProperties = []
+
 	# print(scores)
 	# print(len(scores), len(sentences))
-	ranked = sorted(((scores[i], s, i) for i, s in enumerate(sentences)),reverse=True)
+	ranked = sorted(((scores[i], s, i) for i, s in enumerate(sentences)), reverse=True)
+	# for index, sent in enumerate(ranked):
+		# print(sent[0])
+		# print(sent[1])
+		# print(sent[2])
+		# print('--')
 
-	selected_sentences = []
+	for index, sent in enumerate(sentences):
+		mainObject = dict()
+		mainObject['index'] = index
+		mainObject['sentence'] = sent
+		mainObject['textrank_rank'] = scores[index]
+		mainObject['final_score'] = mainObject['textrank_rank']
+		sentencesProperties.append(mainObject)
+
+	k = 5
+
+	for index in range(0, len(sentences)):
+		tmp = matrix[index][:]
+
+		sentencesProperties[index]['similarity_index_list'] = numpy.argsort(tmp)[::-1][1:]
+		sentencesProperties[index]['similarity_value_list'] = [tmp[x] for x in numpy.argsort(tmp)[::-1]][1:]
+
+	for index in range(0, len(sentences)):
+		up = numpy.mean(sentencesProperties[index]['similarity_value_list'][0:k])
+		for neighbor_index in sentencesProperties[index]['similarity_index_list'][0:k]:
+			down = numpy.mean(sentencesProperties[neighbor_index]['similarity_value_list'][0:k])
+		sentencesProperties[index]['local_density_rank'] = up / down
+		sentencesProperties[index]['final_score'] = sentencesProperties[index]['local_density_rank']
+
+	usedSentences = list()
 
 	summary = ''
 	sent_count = 0
 	while(len(summary.split()) < 250 and sent_count < len(sentences)-1): #len(summary) < 250
-		goodSentence = True
-		for x in selected_sentences:
-			# print(matrix[x][ranked[sent_count][2]])
-			if matrix[x][ranked[sent_count][2]] > 0.9:
-				# print('#####################')
-				# time.sleep(3)
-				goodSentence = False
-				break
-		if goodSentence:
-			selected_sentences.append(ranked[sent_count][2])
-			summary = summary + ranked[sent_count][1] + '\n'
-			last_sentence_id = ranked[sent_count][2]
+		for index in range(0, len(sentences)):
+			if len(tuple(usedSentences)) > 0:
+				tmp = matrix[index, tuple(usedSentences)]
+				# print('==')
+				# print(tmp)
+				sentencesProperties[index]['most_similar_sentence_rank'] = tmp[numpy.argsort(tmp)[::-1]][0]
+				sentencesProperties[index]['final_score'] /= tmp[numpy.argsort(tmp)[::-1]][0]
+				# print(sentencesProperties[index]['final_score'])
+				# print(sentencesProperties[index]['most_similar_sentence_rank'])
+				# print(sentencesProperties[index]['textrank_rank'])
+				# print(sentencesProperties[index]['local_density_rank'])
+
+		sortedSentences = sorted(sentencesProperties, key=lambda item: item['final_score'], reverse=True)
+		sortedSentences[0]['final_score'] = 0
+		summary = summary + sortedSentences[0]['sentence'] + '\n'
+		usedSentences.append(sortedSentences[0]['index'])
 		sent_count += 1
 
-	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/eval/files/textrank_modified_85/system/'+id+'.sum'
+	filename = 'results/' + trainedData + '/w2v_' + dataset + '_' + opr + '_' + stop + '/eval/files/formula2_ldr/system/'+id+'.sum'
 	if not os.path.exists(os.path.dirname(filename)):
 		try:
 			os.makedirs(os.path.dirname(filename))
