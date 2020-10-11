@@ -3,21 +3,19 @@ from hazm import *
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-class MySentences(object):
+class Sentences(object):
 	def __init__(self, dirname):
 		self.dirname = dirname
 
 	def __iter__(self):
 		normalizer = Normalizer()
-		for fname in os.listdir(self.dirname):
-			for line in open(os.path.join(self.dirname, fname)):
+		for file_name in os.listdir(self.dirname):
+			for line in open(os.path.join(self.dirname, file_name)):
 				line = normalizer.normalize(line)
 				yield word_tokenize(line)
 
-sentences = MySentences('/home/mahmood/PycharmProjects/Word2Vec/sentences')  # a memory-friendly iterator
-# print sentences
+sentences = Sentences('Word2Vec/sentences')
 
 model = gensim.models.Word2Vec(sentences, size=300, window=5, workers=8)
 
-model.save('models/w2v_300_combinedNormalized_cleaned.bin')
-
+model.save('models/w2v_300_model.bin')
